@@ -10,7 +10,7 @@ sys.setdefaultencoding('utf8')
 #f = open('C:\Users\Administrator\Desktop\douban\guangdong.html', 'w')
 #f.write(html)
 
-city_map = {
+province_map = {
     u'安徽': u'58321',
     u'澳门': u'45011',
     u'北京': u'54511',
@@ -49,51 +49,55 @@ city_map = {
 
 
 def task():
-    with open('C:\Users\Administrator\Desktop\douban\kongqi.txt', 'a+') as f:
-        for k, v in city_map.items():
-            city_name = k
+    with open('/home/heng/data/pm.json', 'a+') as f:
+        for k, v in province_map.items():
+            province_name = k
             city_code = v
             city_url = 'http://tianqi.2345.com/air-%s.htm' % city_code
             resp = urllib2.urlopen(city_url)
-            html =  resp.read()
+            html = resp.read()
             doc = pq(html)
+            result = {}
+            city_name = doc('.city_title.clearfix .btitle')('h1').text()
+            if city_name:
+                result[u'cityName'] = city_name.replace(u'空气质量pm2.5', '').strip()
             publish_time = doc('.fleft.state-C .filter .publish').text()
             publish_time = publish_time.replace(u'中国环境保护部', '').replace(u'发布', '').strip()
             info = doc('.fleft.state-C dl.pm25 ul.clearfix')('li').items()
-            result = {}
-            result[u'cityName'] = city_name
+            result[u'provinceName'] = province_name
             result[u'publishTime'] = publish_time
             for i in info:
                 name = i('.name').text()
-                value = i('.value').remove('i').text().strip()
                 value_unit = i('.value')('i').text().strip()
+                value = i('.value').remove('i').text().replace(u'暂无', '').strip()
                 if name == u'PM2.5':
                     if value:
-                        result[u'pm25'] = value
+                        result[u'pm25'] = {u'value': value, u'unit': value_unit}
                 elif name == u'PM10':
                     if value:
-                        result[u'pm10'] = value
+                        result[u'pm10'] = {u'value': value, u'unit': value_unit}
                 elif name == u'二氧化硫':
                     if value:
-                        result[u'so2'] = value
+                        result[u'so2'] = {u'value': value, u'unit': value_unit}
                 elif name == u'二氧化氮':
                     if value:
-                        result[u'no2'] = value
+                        result[u'no2'] = {u'value': value, u'unit': value_unit}
                 elif name == u'一氧化碳':
                     if value:
-                        result[u'co'] = value
+                        result[u'co'] = {u'value': value, u'unit': value_unit}
                 elif name == u'臭氧':
                     if value:
-                        result[u'o3'] = value
+                        result[u'o3'] = {u'value': value, u'unit': value_unit}
             if result:
                 f.write('%s\n' % json.dumps(result, ensure_ascii=False, encoding='utf-8'))
 
 
 def timer(n):
     while True:
-        print time.strftime('%Y-%m-%d %X',time.localtime())
+        print time.strftime('%Y-%m-%d %X', time.localtime())
         task()
         time.sleep(n)
 
 if __name__ == '__main__':
-    timer(3600)
+    #timer(3600)
+    task()
